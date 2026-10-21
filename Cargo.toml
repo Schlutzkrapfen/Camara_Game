@@ -1,8 +1,10 @@
+
 [package]
-name = "BevyGame"
-version = "0.1.0"
-edition = "2024"
+name = "Camara_Game"
+version = "0.0.1"
+edition = "2026"
 
 [dependencies]
 bevy = "0.19.0"
+lightyear = "0.30"
 bevy_ecs_tilemap = "0.19"
