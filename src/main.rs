@@ -10,6 +10,7 @@
 //! | `D`                  | Move right    |
 
 use bevy::{post_process::bloom::Bloom, prelude::*};
+use bevy::window::PrimaryWindow;
 
 use bevy_ecs_tilemap::prelude::*;
 use bevy::render::view::NoIndirectDrawing;
@@ -35,15 +36,9 @@ fn main() {
                 ..default()
             }).set(ImagePlugin::default_nearest()))
             .add_plugins(TilemapPlugin)
-            .add_systems(Startup, startup)
-            .add_systems(Update, swap_texture_or_hide)
+           .add_systems(Startup, (setup_scene, setup_instructions, setup_camera, startup))
+           .add_systems(Update, (move_player, update_camera, swap_texture_or_hide, spawn_tile).chain())
             .run();
-    App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugins(TilemapPlugin)
-        .add_systems(Startup, (setup_scene, setup_instructions, setup_camera))
-        .add_systems(Update, (move_player, update_camera).chain())
-        .run();
 }
 
 fn setup_scene(
@@ -98,6 +93,33 @@ fn update_camera(
         .smooth_nudge(&direction, CAMERA_DECAY_RATE, time.delta_secs());
 }
 
+fn spawn_tile(
+    mouse: Res<ButtonInput<MouseButton>>,
+    window: Single<&Window, With<PrimaryWindow>>,
+    camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
+) {
+    if !mouse.just_pressed(MouseButton::Left) {
+            return;
+        }
+
+        let (camera, camera_transform) = *camera;
+
+        // cursor_position() is None if the cursor is outside the window
+        let Some(cursor_pos) = window.cursor_position() else {
+            return;
+        };
+
+        // Window coords -> world coords
+        let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) else {
+            return;
+        };
+
+        println!("world pos: {world_pos:?}");
+        
+
+
+}
+
 /// Update the player position with keyboard inputs.
 /// Note that the approach used here is for demonstration purposes only,
 /// as the point of this example is to showcase the camera tracking feature.
@@ -141,7 +163,6 @@ fn startup(
         ArrayTextureLoader,
     >,
 ) {
-    commands.spawn(Camera2d);
 
     let texture_handle: Handle<Image> = asset_server.load("tiles.png");
 
@@ -176,7 +197,7 @@ fn startup(
         }
     }
 
-    let tile_size = TilemapTileSize { x: 16.0, y: 16.0 };
+    let tile_size = TilemapTileSize { x: 100.0, y: 100.0 };
     let grid_size = tile_size.into();
     let map_type = TilemapType::default();
 
