@@ -40,7 +40,7 @@ fn startup(mut commands: Commands) -> Result {
             // Links need a 'connection' component that provides them with a durable entity beyond a simple IP address.
             // Usually you would use something like NetcodeServer or SteamServer, but for this example
             // we will use [`RawServer`], which uses the IP as the durable network identifier for the entity
-            RawServer,
+            Server,
             // you need to specify the address to bind the server to
             LocalAddr(SERVER_ADDR),
             // the transport that we will use is Udp
