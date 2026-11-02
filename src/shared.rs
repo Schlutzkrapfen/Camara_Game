@@ -2,6 +2,10 @@
 
 use bevy::prelude::*;
 use bevy::prelude::*;
+use crate::protocol::*;
+// in cima a shared.rs
+use lightyear::prelude::*;
+
 #[cfg(all(feature = "webtransport", not(target_family = "wasm")))]
 use bevy::tasks::IoTaskPool;
 use core::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -12,6 +16,9 @@ use serde::{Deserialize, Serialize};
 pub const FIXED_TIMESTEP_HZ: f64 = 64.0;
 
 pub const SERVER_ADDR: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 5000);
+// shared.rs
+pub const PROTOCOL_ID: u64 = 0;
+pub const PRIVATE_KEY: [u8; 32] = [0; 32];
 
 #[derive(Clone)]
 pub struct SharedPlugin;
@@ -21,30 +28,36 @@ pub struct Channel1;
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Message1(pub usize);
 
-#[derive(
-    Component, Serialize, Deserialize, Clone, Debug, PartialEq, Reflect, Deref, DerefMut, Default,
-)]
-pub struct PlayerPosition(pub Vec2);
+
 
 impl Plugin for SharedPlugin {
     fn build(&self, app: &mut App) {
-        // PROTOCOL
-        // Register a message that can be sent between peers
-        app.register_message::<Message1>()
+            // messages
+            app.register_message::<Message1>()
+                .add_direction(NetworkDirection::ServerToClient);
+
+            app.register_message::<PositionMessage>()
+                .add_direction(NetworkDirection::ClientToServer);
+
+            // inputs
+            //app.add_plugins(input::native::InputPlugin::<Inputs>::default());
+
+            // components
+            app.component::<PlayerId>().replicate();
+            app.component::<PlayerPosition>();
+                //.replicate()
+                //.predict()
+                //.add_linear_interpolation();
+            //app.component::<PlayerColor>().replicate();
+
+            // channels
+            // CAMBIATO: da ServerToClient a Bidirectional
+            app.add_channel::<Channel1>(ChannelSettings {
+                mode: ChannelMode::OrderedReliable(ReliableSettings::default()),
+                ..default()
+            })
             .add_direction(NetworkDirection::Bidirectional);
-
-        // You can create channels to send messages over. Channels are used to define the conditions (reliability, ordering, etc.) of the messages sent over them
-        app.add_channel::<Channel1>(ChannelSettings {
-            mode: ChannelMode::OrderedReliable(ReliableSettings::default()),
-            ..default()
-        })
-        .add_direction(NetworkDirection::Bidirectional);
-
-        app.component::<PlayerPosition>().replicate();
-
-        // RENDERING
-        app.add_systems(PostUpdate, draw_boxes);
-    }
+        }
 }
 
 /// System that draws the boxes of the player positions.

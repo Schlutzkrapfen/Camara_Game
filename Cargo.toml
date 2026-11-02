@@ -7,5 +7,5 @@ edition = "2024"
 [dependencies]
 bevy = "0.20.0"
 clap = { version = "4.6.7", features = ["derive"] }
-lightyear = { version = "0.31", features = ["client", "server", "netcode", "udp"] }
+lightyear = { version = "0.31", features = ["client", "server", "netcode", "udp","input_native"] }
 serde = { version = "1.0.229", features = ["derive"] }
