@@ -36,7 +36,7 @@ impl Plugin for SharedPlugin {
             app.register_message::<Message1>()
                 .add_direction(NetworkDirection::ServerToClient);
 
-            app.register_message::<PositionMessage>()
+            app.register_message::<BuildingMassage>()
                 .add_direction(NetworkDirection::ClientToServer);
 
             // inputs

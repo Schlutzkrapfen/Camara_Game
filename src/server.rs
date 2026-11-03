@@ -1,5 +1,6 @@
 use crate::shared::*;
 use crate::protocol::*;
+use crate::enums::*;
 use bevy::gltf::gltf::json::image;
 use lightyear::prelude::client::*;
 use lightyear::prelude::server::*;
@@ -69,17 +70,18 @@ fn build(
     commands: &mut Commands,
         assets: &AssetServer,
     position: Vec2,
+    rotation:TileOrientation
 
 ) {
     let chunk_size = UVec2::splat(1);
-    let tile_display_size = UVec2::splat(64);
+    let tile_display_size = UVec2::splat(100);
     let tile_data = (0..chunk_size.element_product())
             .map(|i| {
                 Some(TileData {
                     tileset_index: 0,
                     color: Color::WHITE,
                     visible: true,
-                    orientation:  TileOrientation::Default,
+                    orientation:  rotation,
                 })
             })
             .collect();
@@ -103,12 +105,13 @@ fn build(
 fn receive_position(
     mut commands: Commands,
        assets: Res<AssetServer>,
-    mut receivers: Query<(Entity, &mut MessageReceiver<PositionMessage>)>,
-) {
+    mut receivers: Query<(Entity, &mut MessageReceiver<BuildingMassage>)>
+)
+{
     for (client, mut receiver) in &mut receivers {
         for msg in receiver.receive() {
-            info!("Server: ricevuto {:?} dal client {client:?}", msg.0);
-            build(&mut commands, &assets, msg.0);
+            info!("Server: ricevuto {:?} with rotation {:?} client {client:?}", msg.0, msg.1);
+            build(&mut commands, &assets, msg.0,orientation_from_u8( msg.1));
         }
     }
 }

@@ -10,6 +10,7 @@ mod protocol;
 mod client;
 mod server;
 mod shared;
+mod enums;
 
 use bevy::{post_process::bloom::Bloom, prelude::*};
 use crate::shared::{SharedPlugin, FIXED_TIMESTEP_HZ};

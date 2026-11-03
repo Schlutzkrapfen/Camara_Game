@@ -64,16 +64,16 @@ fn startup(mut commands: Commands) -> Result {
 }
 fn send_position(
     player: Single<&Transform, With<Player>>,
-    mut sender: Single<&mut MessageSender<PositionMessage>>,
+    mut sender: Single<&mut MessageSender<BuildingMassage>>,
 ) {
     let pos = player.translation.truncate(); // Vec3 -> Vec2
-    sender.send::<Channel1>(PositionMessage(pos));
+    sender.send::<Channel1>(BuildingMassage(pos,1));
 }
 fn spawn_tile(
     mouse: Res<ButtonInput<MouseButton>>,
     window: Single<&Window, With<PrimaryWindow>>,
     camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
-     mut sender: Single<&mut MessageSender<PositionMessage>>
+     mut sender: Single<&mut MessageSender<BuildingMassage>>
 ) {
     if !mouse.just_pressed(MouseButton::Left) {
             return;
@@ -90,7 +90,7 @@ fn spawn_tile(
         let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) else {
             return;
         };
-        sender.send::<Channel1>(PositionMessage(world_pos));
+        sender.send::<Channel1>(BuildingMassage(world_pos,1));
 
         println!("Position Clicked: {world_pos:?}");
 }

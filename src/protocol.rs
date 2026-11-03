@@ -1,5 +1,5 @@
 // src/protocol.rs
-use bevy::prelude::*;
+use bevy::{prelude::*, sprite_render::TileOrientation};
 use lightyear::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -8,9 +8,10 @@ pub struct PlayerId(pub PeerId);
 
 #[derive(Component, Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 pub struct PlayerPosition(pub Vec2);
-
+/// Position,Rotation,BuildIndex
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct PositionMessage(pub Vec2);
+pub struct BuildingMassage(pub Vec2,pub u8);
+
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 pub struct Inputs { /* i tuoi campi */ }
