@@ -1,9 +1,15 @@
 use crate::shared::*;
 use crate::protocol::*;
-use bevy::prelude::*;
+use bevy::gltf::gltf::json::image;
 use lightyear::prelude::client::*;
 use lightyear::prelude::server::*;
 use lightyear::prelude::*;
+use bevy::{
+    image::{ImageArrayLayout, ImageLoaderSettings},
+    prelude::*,
+    sprite_render::{AlphaMode2d, TileData, TileOrientation, TilemapChunk, TilemapChunkTileData},
+};
+
 
 pub struct ExampleServerPlugin;
 
@@ -58,13 +64,54 @@ fn startup(mut commands: Commands) -> Result {
     Ok(())
 }
 
+
+fn build(
+    commands: &mut Commands,
+        assets: &AssetServer,
+    position: Vec2,
+
+) {
+    let chunk_size = UVec2::splat(8);
+    let tile_display_size = UVec2::splat(64);
+    let tile_data = (0..chunk_size.element_product())
+            .map(|i| {
+                let row = i / 8;
+                let col = i % 8;
+                Some(TileData {
+                    // Alternate tiles per row
+                    tileset_index: (row % 2) as u16,
+                    color: Color::WHITE,
+                    // Last (top) row is invisible
+                    visible: row != 7,
+                    orientation:  TileOrientation::Default,
+                })
+            })
+            .collect();
+    commands.spawn((
+
+        TilemapChunk {
+            chunk_size,
+            tile_display_size,
+            tileset: assets
+                .load_builder()
+                .with_settings(|settings: &mut ImageLoaderSettings| {
+                    settings.array_layout = Some(ImageArrayLayout::RowCount { rows: 2 });
+                })
+                .load::<Image>("tiles.png"),
+            alpha_mode: AlphaMode2d::Blend,
+        },
+        TilemapChunkTileData(tile_data),
+    ));
+}
 fn receive_position(
+    mut commands: Commands,
+       assets: Res<AssetServer>,
     mut receivers: Query<(Entity, &mut MessageReceiver<PositionMessage>)>,
 ) {
     for (client, mut receiver) in &mut receivers {
         for msg in receiver.receive() {
             info!("Server: ricevuto {:?} dal client {client:?}", msg.0);
-            // qui spawni il tile, aggiorni lo stato, ecc.
+            build(&mut commands, &assets, msg.0);
         }
     }
 }
