@@ -71,18 +71,14 @@ fn build(
     position: Vec2,
 
 ) {
-    let chunk_size = UVec2::splat(8);
+    let chunk_size = UVec2::splat(1);
     let tile_display_size = UVec2::splat(64);
     let tile_data = (0..chunk_size.element_product())
             .map(|i| {
-                let row = i / 8;
-                let col = i % 8;
                 Some(TileData {
-                    // Alternate tiles per row
-                    tileset_index: (row % 2) as u16,
+                    tileset_index: 0,
                     color: Color::WHITE,
-                    // Last (top) row is invisible
-                    visible: row != 7,
+                    visible: true,
                     orientation:  TileOrientation::Default,
                 })
             })
@@ -101,6 +97,7 @@ fn build(
             alpha_mode: AlphaMode2d::Blend,
         },
         TilemapChunkTileData(tile_data),
+        Transform::from_translation(position.extend(0.0))
     ));
 }
 fn receive_position(
