@@ -14,6 +14,8 @@ use lightyear::prelude::*;
 use serde::{Deserialize, Serialize};
 
 pub const FIXED_TIMESTEP_HZ: f64 = 64.0;
+pub const TILEDISPLAYSIZE: UVec2 = UVec2::splat(100);
+
 
 pub const SERVER_ADDR: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 5000);
 // shared.rs

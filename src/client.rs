@@ -60,7 +60,19 @@ fn startup(mut commands: Commands) -> Result {
         .id();
 
     commands.trigger(Connect { entity: client });
+    commands.spawn((
+            Text::new(concat!(
+                "Client"
+            )),
+            Node {
+                position_type: PositionType::Absolute,
+                bottom: px(12),
+                left: px(12),
+                ..default()
+            },
+        ));
     Ok(())
+
 }
 fn send_position(
     player: Single<&Transform, With<Player>>,
@@ -92,7 +104,6 @@ fn spawn_tile(
         };
         sender.send::<Channel1>(BuildingMassage(world_pos,1));
 
-        println!("Position Clicked: {world_pos:?}");
 }
 fn log_connected(query: Query<Entity, Added<Connected>>) {
     for entity in &query {
