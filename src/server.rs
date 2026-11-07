@@ -5,6 +5,7 @@ use bevy::gltf::gltf::json::image;
 use lightyear::prelude::client::*;
 use lightyear::prelude::server::*;
 use lightyear::prelude::*;
+use bevy::window::PrimaryWindow;
 use bevy::{
     image::{ImageArrayLayout, ImageLoaderSettings},
     prelude::*,
@@ -18,7 +19,7 @@ impl Plugin for ExampleServerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, (startup,setup_tilemap));
         app.add_observer(handle_new_client);
-        app.add_systems(Update, receive_position);
+        app.add_systems(Update, (receive_position,spawn_tile));
     }
 }
 
@@ -75,8 +76,34 @@ fn startup(mut commands: Commands) -> Result {
         ));
     Ok(())
 }
+fn spawn_tile(
+    mut query: Query<(&TilemapChunk, &mut TilemapChunkTileData), With<GridMap>>,
+    mouse: Res<ButtonInput<MouseButton>>,
+    window: Single<&Window, With<PrimaryWindow>>,
+    camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
+) {
+    if !mouse.just_pressed(MouseButton::Left) {
+            return;
+        }
 
+        let (camera, camera_transform) = camera.into_inner();
+        // cursor_position() is None if the cursor is outside the window
+        let Some(cursor_pos) = window.cursor_position() else {
+            return;
+        };
 
+        // Window coords -> world coords
+        let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) else {
+            return;
+        };
+        let Ok((chunk, mut data)) = query.single_mut() else {
+                       error!("GridMap non found!");
+                       return;
+                   };
+
+        place_tiles(chunk, &mut data, world_pos, TileOrientation::Default);
+
+}
 #[derive(Component)]
 struct GridMap;
 fn setup_tilemap(mut commands: Commands, assets: Res<AssetServer>) {
@@ -101,32 +128,11 @@ fn setup_tilemap(mut commands: Commands, assets: Res<AssetServer>) {
             alpha_mode: AlphaMode2d::Blend,
         },
         TilemapChunkTileData(tile_data),
-        Transform::default(), // il chunk sta fermo, la posizione è nella griglia
+        Transform::default(),
     ));
 }
 
-fn build(
-    chunk: &TilemapChunk,
-    data: &mut TilemapChunkTileData,
-    grid_pos: UVec2,
-    rotation: TileOrientation,
-) {
 
-    if grid_pos.x >= chunk.chunk_size.x || grid_pos.y >= chunk.chunk_size.y {
-        return;
-    }
-
-    let index = (grid_pos.y * chunk.chunk_size.x + grid_pos.x) as usize;
-
-    data.0[index] = Some(TileData {
-        tileset_index: 0,
-        color: Color::WHITE,
-        visible: true,
-        orientation: rotation,
-    });
-
-    info!("Server: build at postion {:?} with rotation {:?}",grid_pos ,rotation);
-}
 fn receive_position(
     mut query: Query<(&TilemapChunk, &mut TilemapChunkTileData), With<GridMap>>,
        assets: Res<AssetServer>,
@@ -146,20 +152,4 @@ fn receive_position(
             place_tiles(chunk, &mut data, msg.0, orientation_from_u8(msg.1));
         }
     }
-}
-fn place_tiles(
-    chunk: &TilemapChunk,
-    data: &mut TilemapChunkTileData,
-    position:Vec2,
-    rotation:TileOrientation
-) {
-    let tile = chunk.tile_display_size.as_vec2();
-       let total = chunk.chunk_size.as_vec2() * tile;
-
-       // origine in alto a sinistra del chunk (chunk centrato in 0,0)
-       let local = Vec2::new(position.x + total.x / 2.0, total.y / 2.0 - position.y);
-       let cell = (local / tile).floor().as_ivec2();
-
-    build(chunk, data, cell.as_uvec2(), rotation);
-
 }
