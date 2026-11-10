@@ -106,7 +106,7 @@ pub fn place_tiles(
        let total = chunk.chunk_size.as_vec2() * tile;
 
        // origine in alto a sinistra del chunk (chunk centrato in 0,0)
-       let local = Vec2::new(position.x + total.x / 2.0, total.y / 2.0 - position.y);
+       let local = Vec2::new(position.x + total.x / 2.0,  position.y + total.y /2.0);
        let cell = (local / tile).floor().as_ivec2();
 
     build(chunk, data, cell.as_uvec2(), rotation);
