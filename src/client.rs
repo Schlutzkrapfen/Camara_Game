@@ -1,6 +1,10 @@
 //! The client plugin.
 use crate::shared::*;
-use bevy::prelude::*;
+use bevy::{
+    image::{ImageArrayLayout, ImageLoaderSettings},
+    prelude::*,
+    sprite_render::{AlphaMode2d, TileData, TileOrientation, TilemapChunk, TilemapChunkTileData},
+};
 use core::net::Ipv4Addr;
 use core::net::{IpAddr, SocketAddr};
 use lightyear::prelude::client::*;
@@ -22,8 +26,7 @@ const CLIENT_ADDR: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST),
 
 impl Plugin for ExampleClientPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, startup);
-        app.add_systems(Startup, spawn_player);
+        app.add_systems(Startup, (startup,setup_tilemap));
         app.add_systems(Update,  spawn_tile);
         app.add_systems(Update, check_connection);
     }
@@ -81,7 +84,36 @@ fn send_position(
     let pos = player.translation.truncate(); // Vec3 -> Vec2
     sender.send::<Channel1>(BuildingMassage(pos,1));
 }
+#[derive(Component)]
+struct GridMap;
+fn setup_tilemap(mut commands: Commands, assets: Res<AssetServer>) {
+    let chunk_size = UVec2::splat(100);
+    let tile_display_size = UVec2::splat(100);
+
+    // Tutte le tile partono vuote (None = nessuna tile)
+    let tile_data: Vec<Option<TileData>> =
+        vec![None; chunk_size.element_product() as usize];
+
+    commands.spawn((
+        GridMap,
+        TilemapChunk {
+            chunk_size,
+            tile_display_size,
+            tileset: assets
+                .load_builder()
+                .with_settings(|settings: &mut ImageLoaderSettings| {
+                    settings.array_layout = Some(ImageArrayLayout::RowCount { rows: 2 });
+                })
+                .load::<Image>("tiles.png"),
+            alpha_mode: AlphaMode2d::Blend,
+        },
+        TilemapChunkTileData(tile_data),
+        Transform::default(),
+    ));
+}
+
 fn spawn_tile(
+    mut query: Query<(&TilemapChunk, &mut TilemapChunkTileData), With<GridMap>>,
     mouse: Res<ButtonInput<MouseButton>>,
     window: Single<&Window, With<PrimaryWindow>>,
     camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
@@ -103,6 +135,12 @@ fn spawn_tile(
             return;
         };
         sender.send::<Channel1>(BuildingMassage(world_pos,1));
+        let Ok((chunk, mut data)) = query.single_mut() else {
+                       error!("GridMap non found!");
+                       return;
+                   };
+        place_tiles(chunk, &mut data, world_pos, bevy::sprite_render::TileOrientation::Default);
+
 
 }
 fn log_connected(query: Query<Entity, Added<Connected>>) {
