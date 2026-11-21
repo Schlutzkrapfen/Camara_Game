@@ -90,7 +90,6 @@ fn setup_tilemap(mut commands: Commands, assets: Res<AssetServer>) {
     let chunk_size = UVec2::splat(100);
     let tile_display_size = UVec2::splat(100);
 
-    // Tutte le tile partono vuote (None = nessuna tile)
     let tile_data: Vec<Option<TileData>> =
         vec![None; chunk_size.element_product() as usize];
 

@@ -76,11 +76,17 @@ fn startup(mut commands: Commands) -> Result {
         ));
     Ok(())
 }
+fn send_info()
+{
+
+}
 fn spawn_tile(
     mut query: Query<(&TilemapChunk, &mut TilemapChunkTileData), With<GridMap>>,
     mouse: Res<ButtonInput<MouseButton>>,
     window: Single<&Window, With<PrimaryWindow>>,
     camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
+    mut senders: Query<&mut MessageSender<BuildingMassage>, With<Client>>,
+    // ...
 ) {
     if !mouse.just_pressed(MouseButton::Left) {
             return;
@@ -102,6 +108,11 @@ fn spawn_tile(
                    };
 
         place_tiles(chunk, &mut data, world_pos, TileOrientation::Default);
+        for mut sender in senders.iter_mut() {
+            sender.send::<Channel1>(BuildingMassage(world_pos, 2));
+        }
+
+        //sender.send::<Channel1>(BuildingMassage(world_pos,2));
 
 }
 #[derive(Component)]
