@@ -1,5 +1,8 @@
 //! The client plugin.
+use crate::enums::orientation_from_u8;
+use crate::protocol::*;
 use crate::shared::*;
+use bevy::window::PrimaryWindow;
 use bevy::{
     image::{ImageArrayLayout, ImageLoaderSettings},
     prelude::*,
@@ -7,12 +10,9 @@ use bevy::{
 };
 use core::net::Ipv4Addr;
 use core::net::{IpAddr, SocketAddr};
+use lightyear::netcode::{Key, NetcodeClient};
 use lightyear::prelude::client::*;
 use lightyear::prelude::*;
-use crate::protocol::*;
-use bevy::window::PrimaryWindow;
-use lightyear::netcode::{Key, NetcodeClient};
-
 
 fn spawn_player(mut commands: Commands) {
     commands.spawn((
@@ -26,9 +26,8 @@ const CLIENT_ADDR: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST),
 
 impl Plugin for ExampleClientPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (startup,setup_tilemap));
-        app.add_systems(Update,  spawn_tile);
-        app.add_systems(Update, check_connection);
+        app.add_systems(Startup, (startup, setup_tilemap));
+        app.add_systems(Update, (spawn_tile, receive_position, check_connection));
     }
 }
 
@@ -56,33 +55,31 @@ fn startup(mut commands: Commands) -> Result {
             ReplicationReceiver::default(),
             UdpIo::default(),
             NetcodeClient::new(
-                    auth,
-                    lightyear::netcode::client_plugin::NetcodeConfig::default(),
-                ).unwrap(),
+                auth,
+                lightyear::netcode::client_plugin::NetcodeConfig::default(),
+            )
+            .unwrap(),
         ))
         .id();
 
     commands.trigger(Connect { entity: client });
     commands.spawn((
-            Text::new(concat!(
-                "Client"
-            )),
-            Node {
-                position_type: PositionType::Absolute,
-                bottom: px(12),
-                left: px(12),
-                ..default()
-            },
-        ));
+        Text::new(concat!("Client")),
+        Node {
+            position_type: PositionType::Absolute,
+            bottom: px(12),
+            left: px(12),
+            ..default()
+        },
+    ));
     Ok(())
-
 }
 fn send_position(
     player: Single<&Transform, With<Player>>,
     mut sender: Single<&mut MessageSender<BuildingMassage>>,
 ) {
     let pos = player.translation.truncate(); // Vec3 -> Vec2
-    sender.send::<Channel1>(BuildingMassage(pos,1));
+    sender.send::<Channel1>(BuildingMassage(pos, 1));
 }
 #[derive(Component)]
 struct GridMap;
@@ -90,8 +87,7 @@ fn setup_tilemap(mut commands: Commands, assets: Res<AssetServer>) {
     let chunk_size = UVec2::splat(100);
     let tile_display_size = UVec2::splat(100);
 
-    let tile_data: Vec<Option<TileData>> =
-        vec![None; chunk_size.element_product() as usize];
+    let tile_data: Vec<Option<TileData>> = vec![None; chunk_size.element_product() as usize];
 
     commands.spawn((
         GridMap,
@@ -116,31 +112,34 @@ fn spawn_tile(
     mouse: Res<ButtonInput<MouseButton>>,
     window: Single<&Window, With<PrimaryWindow>>,
     camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
-     mut sender: Single<&mut MessageSender<BuildingMassage>>
+    mut sender: Single<&mut MessageSender<BuildingMassage>>,
 ) {
     if !mouse.just_pressed(MouseButton::Left) {
-            return;
-        }
+        return;
+    }
 
-        let (camera, camera_transform) = camera.into_inner();
+    let (camera, camera_transform) = camera.into_inner();
 
-        // cursor_position() is None if the cursor is outside the window
-        let Some(cursor_pos) = window.cursor_position() else {
-            return;
-        };
+    // cursor_position() is None if the cursor is outside the window
+    let Some(cursor_pos) = window.cursor_position() else {
+        return;
+    };
 
-        // Window coords -> world coords
-        let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) else {
-            return;
-        };
-        sender.send::<Channel1>(BuildingMassage(world_pos,1));
-        let Ok((chunk, mut data)) = query.single_mut() else {
-                       error!("GridMap non found!");
-                       return;
-                   };
-        place_tiles(chunk, &mut data, world_pos, bevy::sprite_render::TileOrientation::Default);
-
-
+    // Window coords -> world coords
+    let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) else {
+        return;
+    };
+    sender.send::<Channel1>(BuildingMassage(world_pos, 1));
+    let Ok((chunk, mut data)) = query.single_mut() else {
+        error!("GridMap non found!");
+        return;
+    };
+    place_tiles(
+        chunk,
+        &mut data,
+        world_pos,
+        bevy::sprite_render::TileOrientation::Default,
+    );
 }
 fn log_connected(query: Query<Entity, Added<Connected>>) {
     for entity in &query {
@@ -150,5 +149,26 @@ fn log_connected(query: Query<Entity, Added<Connected>>) {
 fn check_connection(q: Query<Entity, (With<Client>, Added<Connected>)>) {
     for e in &q {
         info!("✅ connection stable {e:?}");
+    }
+}
+
+fn receive_position(
+    mut query: Query<(&TilemapChunk, &mut TilemapChunkTileData), With<GridMap>>,
+    assets: Res<AssetServer>,
+    mut receivers: Query<(Entity, &mut MessageReceiver<BuildingMassage>)>,
+) {
+    for (server, mut receiver) in &mut receivers {
+        for msg in receiver.receive() {
+            info!(
+                "Client: ricevuto {:?} with rotation {:?} Server {server:?}",
+                msg.0, msg.1
+            );
+            let Ok((chunk, mut data)) = query.single_mut() else {
+                warn!("GridMap non found!");
+                continue;
+            };
+
+            place_tiles(chunk, &mut data, msg.0, orientation_from_u8(msg.1));
+        }
     }
 }

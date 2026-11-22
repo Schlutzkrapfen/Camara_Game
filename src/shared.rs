@@ -1,9 +1,11 @@
 //! This module contains the shared code between the client and the server.
 
-use bevy::prelude::*;
-use bevy::prelude::*;
-use bevy::sprite_render::{AlphaMode2d, TileData, TileOrientation, TilemapChunk, TilemapChunkTileData};
 use crate::protocol::*;
+use bevy::prelude::*;
+use bevy::prelude::*;
+use bevy::sprite_render::{
+    AlphaMode2d, TileData, TileOrientation, TilemapChunk, TilemapChunkTileData,
+};
 // in cima a shared.rs
 use lightyear::prelude::*;
 
@@ -16,7 +18,6 @@ use serde::{Deserialize, Serialize};
 
 pub const FIXED_TIMESTEP_HZ: f64 = 64.0;
 pub const TILEDISPLAYSIZE: UVec2 = UVec2::splat(100);
-
 
 pub const SERVER_ADDR: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 5000);
 // shared.rs
@@ -31,36 +32,34 @@ pub struct Channel1;
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Message1(pub usize);
 
-
-
 impl Plugin for SharedPlugin {
     fn build(&self, app: &mut App) {
-            // messages
-            app.register_message::<Message1>()
-                .add_direction(NetworkDirection::ServerToClient);
+        // messages
+        app.register_message::<Message1>()
+            .add_direction(NetworkDirection::ServerToClient);
 
-            app.register_message::<BuildingMassage>()
-                .add_direction(NetworkDirection::ClientToServer);
-
-            // inputs
-            //app.add_plugins(input::native::InputPlugin::<Inputs>::default());
-
-            // components
-            app.component::<PlayerId>().replicate();
-            app.component::<PlayerPosition>();
-                //.replicate()
-                //.predict()
-                //.add_linear_interpolation();
-            //app.component::<PlayerColor>().replicate();
-
-            // channels
-            // CAMBIATO: da ServerToClient a Bidirectional
-            app.add_channel::<Channel1>(ChannelSettings {
-                mode: ChannelMode::OrderedReliable(ReliableSettings::default()),
-                ..default()
-            })
+        app.register_message::<BuildingMassage>()
             .add_direction(NetworkDirection::Bidirectional);
-        }
+
+        // inputs
+        //app.add_plugins(input::native::InputPlugin::<Inputs>::default());
+
+        // components
+        app.component::<PlayerId>().replicate();
+        app.component::<PlayerPosition>();
+        //.replicate()
+        //.predict()
+        //.add_linear_interpolation();
+        //app.component::<PlayerColor>().replicate();
+
+        // channels
+        // CAMBIATO: da ServerToClient a Bidirectional
+        app.add_channel::<Channel1>(ChannelSettings {
+            mode: ChannelMode::OrderedReliable(ReliableSettings::default()),
+            ..default()
+        })
+        .add_direction(NetworkDirection::Bidirectional);
+    }
 }
 
 /// System that draws the boxes of the player positions.
@@ -80,7 +79,6 @@ pub fn build(
     grid_pos: UVec2,
     rotation: TileOrientation,
 ) {
-
     if grid_pos.x >= chunk.chunk_size.x || grid_pos.y >= chunk.chunk_size.y {
         return;
     }
@@ -94,21 +92,23 @@ pub fn build(
         orientation: rotation,
     });
 
-    info!("build at postion {:?} with rotation {:?}",grid_pos ,rotation);
+    info!(
+        "build at postion {:?} with rotation {:?}",
+        grid_pos, rotation
+    );
 }
 pub fn place_tiles(
     chunk: &TilemapChunk,
     data: &mut TilemapChunkTileData,
-    position:Vec2,
-    rotation:TileOrientation
+    position: Vec2,
+    rotation: TileOrientation,
 ) {
     let tile = chunk.tile_display_size.as_vec2();
-       let total = chunk.chunk_size.as_vec2() * tile;
+    let total = chunk.chunk_size.as_vec2() * tile;
 
-       // origine in alto a sinistra del chunk (chunk centrato in 0,0)
-       let local = Vec2::new(position.x + total.x / 2.0,  position.y + total.y /2.0);
-       let cell = (local / tile).floor().as_ivec2();
+    // origine in alto a sinistra del chunk (chunk centrato in 0,0)
+    let local = Vec2::new(position.x + total.x / 2.0, position.y + total.y / 2.0);
+    let cell = (local / tile).floor().as_ivec2();
 
     build(chunk, data, cell.as_uvec2(), rotation);
-
 }
