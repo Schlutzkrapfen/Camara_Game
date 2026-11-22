@@ -71,12 +71,13 @@ fn startup(mut commands: Commands) -> Result {
     Ok(())
 }
 fn send_info() {}
+/// Places a tile at the cursor position on left click and notifies the network.
 fn spawn_tile(
     mut query: Query<(&TilemapChunk, &mut TilemapChunkTileData), With<GridMap>>,
     mouse: Res<ButtonInput<MouseButton>>,
     window: Single<&Window, With<PrimaryWindow>>,
     camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
-    mut sender: Single<&mut MessageSender<BuildingMassage>>,
+    mut sender: Option<Single<&mut MessageSender<BuildingMassage>>>,
     // ...
 ) {
     if !mouse.just_pressed(MouseButton::Left) {
@@ -99,7 +100,9 @@ fn spawn_tile(
     };
 
     place_tiles(chunk, &mut data, world_pos, TileOrientation::Default);
-    sender.send::<Channel1>(BuildingMassage(world_pos, 1));
+    if let Some(sender) = sender.as_mut() {
+        sender.send::<Channel1>(BuildingMassage(world_pos, 1));
+    }
     let Ok((chunk, mut data)) = query.single_mut() else {
         error!("GridMap non found!");
         return;

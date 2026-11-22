@@ -14,14 +14,8 @@ use lightyear::netcode::{Key, NetcodeClient};
 use lightyear::prelude::client::*;
 use lightyear::prelude::*;
 
-fn spawn_player(mut commands: Commands) {
-    commands.spawn((
-        Player,
-        Transform::from_xyz(0.0, 0.0, 0.0),
-        // qui il tuo mesh/sprite, es. Sprite::default() oppure Mesh2d(...)
-    ));
-}
 pub struct ExampleClientPlugin;
+
 const CLIENT_ADDR: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 4000);
 
 impl Plugin for ExampleClientPlugin {
