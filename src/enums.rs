@@ -25,3 +25,16 @@ pub fn orientation_from_u8(n: u8) -> TileOrientation {
         _ => TileOrientation::Default, // 0 e qualsiasi valore non valido
     }
 }
+
+pub fn next_orientation(orientation: TileOrientation) -> TileOrientation {
+    match orientation {
+        TileOrientation::Default => TileOrientation::Rotate90,
+        TileOrientation::Rotate90 => TileOrientation::Rotate180,
+        TileOrientation::Rotate180 => TileOrientation::Rotate270,
+        TileOrientation::Rotate270 => TileOrientation::Default,
+        TileOrientation::MirrorH => TileOrientation::MirrorHRotate90,
+        TileOrientation::MirrorHRotate90 => TileOrientation::MirrorHRotate180,
+        TileOrientation::MirrorHRotate180 => TileOrientation::MirrorHRotate270,
+        TileOrientation::MirrorHRotate270 => TileOrientation::MirrorH,
+    }
+}

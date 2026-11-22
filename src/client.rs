@@ -1,5 +1,5 @@
 //! The client plugin.
-use crate::enums::orientation_from_u8;
+use crate::enums::*;
 use crate::protocol::*;
 use crate::shared::*;
 use bevy::window::PrimaryWindow;
@@ -13,15 +13,31 @@ use core::net::{IpAddr, SocketAddr};
 use lightyear::netcode::{Key, NetcodeClient};
 use lightyear::prelude::client::*;
 use lightyear::prelude::*;
+use std::sync::Mutex;
 
 pub struct ExampleClientPlugin;
 
+static ROTATION: Mutex<TileOrientation> = Mutex::new(TileOrientation::Default);
 const CLIENT_ADDR: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 4000);
 
 impl Plugin for ExampleClientPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, (startup, setup_tilemap));
-        app.add_systems(Update, (spawn_tile, receive_position, check_connection));
+        app.add_systems(
+            Update,
+            (
+                spawn_tile,
+                receive_position,
+                check_connection,
+                rotatie_tile_client,
+            ),
+        );
+    }
+}
+fn rotatie_tile_client(keyboard: Res<ButtonInput<KeyCode>>) {
+    if keyboard.just_pressed(KeyCode::KeyR) {
+        let mut orientation = ROTATION.lock().unwrap();
+        *orientation = next_orientation(*orientation);
     }
 }
 
@@ -68,13 +84,7 @@ fn startup(mut commands: Commands) -> Result {
     ));
     Ok(())
 }
-fn send_position(
-    player: Single<&Transform, With<Player>>,
-    mut sender: Single<&mut MessageSender<BuildingMassage>>,
-) {
-    let pos = player.translation.truncate(); // Vec3 -> Vec2
-    sender.send::<Channel1>(BuildingMassage(pos, 1));
-}
+
 #[derive(Component)]
 struct GridMap;
 fn setup_tilemap(mut commands: Commands, assets: Res<AssetServer>) {
@@ -100,7 +110,12 @@ fn setup_tilemap(mut commands: Commands, assets: Res<AssetServer>) {
         Transform::default(),
     ));
 }
-
+fn rotatie_tile(keyboard: Res<ButtonInput<KeyCode>>) {
+    if keyboard.just_pressed(KeyCode::KeyR) {
+        let mut orientation = ROTATION.lock().unwrap();
+        *orientation = next_orientation(*orientation);
+    }
+}
 fn spawn_tile(
     mut query: Query<(&TilemapChunk, &mut TilemapChunkTileData), With<GridMap>>,
     mouse: Res<ButtonInput<MouseButton>>,
@@ -123,17 +138,15 @@ fn spawn_tile(
     let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) else {
         return;
     };
-    sender.send::<Channel1>(BuildingMassage(world_pos, 1));
+    sender.send::<Channel1>(BuildingMassage(
+        world_pos,
+        orientation_to_u8(*ROTATION.lock().unwrap()),
+    ));
     let Ok((chunk, mut data)) = query.single_mut() else {
         error!("GridMap non found!");
         return;
     };
-    place_tiles(
-        chunk,
-        &mut data,
-        world_pos,
-        bevy::sprite_render::TileOrientation::Default,
-    );
+    place_tiles(chunk, &mut data, world_pos, *ROTATION.lock().unwrap());
 }
 fn log_connected(query: Query<Entity, Added<Connected>>) {
     for entity in &query {

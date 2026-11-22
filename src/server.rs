@@ -1,7 +1,11 @@
+use std::sync::Mutex;
+
 use crate::enums::*;
 use crate::protocol::*;
 use crate::shared::*;
+use bevy::gltf::gltf::animation::Property::Rotation;
 use bevy::gltf::gltf::json::image;
+use bevy::material::key;
 use bevy::window::PrimaryWindow;
 use bevy::{
     image::{ImageArrayLayout, ImageLoaderSettings},
@@ -14,11 +18,13 @@ use lightyear::prelude::*;
 
 pub struct ExampleServerPlugin;
 
+static ROTATION: Mutex<TileOrientation> = Mutex::new(TileOrientation::Default);
+
 impl Plugin for ExampleServerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, (startup, setup_tilemap));
         app.add_observer(handle_new_client);
-        app.add_systems(Update, (receive_position, spawn_tile));
+        app.add_systems(Update, (receive_position, spawn_tile, rotatie_tile));
     }
 }
 
@@ -70,7 +76,6 @@ fn startup(mut commands: Commands) -> Result {
     ));
     Ok(())
 }
-fn send_info() {}
 /// Places a tile at the cursor position on left click and notifies the network.
 fn spawn_tile(
     mut query: Query<(&TilemapChunk, &mut TilemapChunkTileData), With<GridMap>>,
@@ -99,14 +104,14 @@ fn spawn_tile(
         return;
     };
 
-    place_tiles(chunk, &mut data, world_pos, TileOrientation::Default);
+    place_tiles(chunk, &mut data, world_pos, *ROTATION.lock().unwrap());
+
     if let Some(sender) = sender.as_mut() {
-        sender.send::<Channel1>(BuildingMassage(world_pos, 1));
+        sender.send::<Channel1>(BuildingMassage(
+            world_pos,
+            orientation_to_u8(*ROTATION.lock().unwrap()),
+        ));
     }
-    let Ok((chunk, mut data)) = query.single_mut() else {
-        error!("GridMap non found!");
-        return;
-    };
 }
 #[derive(Component)]
 struct GridMap;
@@ -133,6 +138,13 @@ fn setup_tilemap(mut commands: Commands, assets: Res<AssetServer>) {
         TilemapChunkTileData(tile_data),
         Transform::default(),
     ));
+}
+
+fn rotatie_tile(keyboard: Res<ButtonInput<KeyCode>>) {
+    if keyboard.just_pressed(KeyCode::KeyR) {
+        let mut orientation = ROTATION.lock().unwrap();
+        *orientation = next_orientation(*orientation);
+    }
 }
 
 fn receive_position(
