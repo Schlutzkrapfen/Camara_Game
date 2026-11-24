@@ -13,6 +13,7 @@ use core::net::{IpAddr, SocketAddr};
 use lightyear::netcode::{Key, NetcodeClient};
 use lightyear::prelude::client::*;
 use lightyear::prelude::*;
+use rand::Rng;
 use std::sync::Mutex;
 
 pub struct ExampleClientPlugin;
@@ -22,7 +23,7 @@ const CLIENT_ADDR: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST),
 
 impl Plugin for ExampleClientPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (startup, setup_tilemap));
+        app.add_systems(Startup, (startup, setup_tilemap, receive_all_buildings));
         app.add_systems(
             Update,
             (
@@ -42,16 +43,10 @@ fn rotatie_tile_client(keyboard: Res<ButtonInput<KeyCode>>) {
 }
 
 fn startup(mut commands: Commands) -> Result {
+    let mut rng = rand::rng();
     let auth = Authentication::Manual {
         server_addr: SERVER_ADDR,
-        client_id: 0,
-        private_key: Key::default(),
-        protocol_id: 0,
-    };
-
-    let auth = Authentication::Manual {
-        server_addr: SERVER_ADDR,
-        client_id: 0,
+        client_id: rng.random(),
         private_key: PRIVATE_KEY,
         protocol_id: PROTOCOL_ID,
     };
@@ -121,7 +116,7 @@ fn spawn_tile(
     mouse: Res<ButtonInput<MouseButton>>,
     window: Single<&Window, With<PrimaryWindow>>,
     camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
-    mut sender: Single<&mut MessageSender<BuildingMassage>>,
+    mut sender: Single<&mut MessageSender<BuildingPlaced>>,
 ) {
     if !mouse.just_pressed(MouseButton::Left) {
         return;
@@ -138,10 +133,14 @@ fn spawn_tile(
     let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) else {
         return;
     };
-    sender.send::<Channel1>(BuildingMassage(
-        world_pos,
-        orientation_to_u8(*ROTATION.lock().unwrap()),
-    ));
+    let building = BuildingData {
+        id: 1,
+        tile: world_pos,
+        kind: 0,
+        rotation: orientation_to_u8(*ROTATION.lock().unwrap()),
+    };
+
+    sender.send::<Channel1>(BuildingPlaced(building));
     let Ok((chunk, mut data)) = query.single_mut() else {
         error!("GridMap non found!");
         return;
@@ -162,20 +161,48 @@ fn check_connection(q: Query<Entity, (With<Client>, Added<Connected>)>) {
 fn receive_position(
     mut query: Query<(&TilemapChunk, &mut TilemapChunkTileData), With<GridMap>>,
     assets: Res<AssetServer>,
-    mut receivers: Query<(Entity, &mut MessageReceiver<BuildingMassage>)>,
+    mut receivers: Query<(Entity, &mut MessageReceiver<BuildingPlaced>)>,
 ) {
     for (server, mut receiver) in &mut receivers {
         for msg in receiver.receive() {
             info!(
                 "Client: ricevuto {:?} with rotation {:?} Server {server:?}",
-                msg.0, msg.1
+                msg.0.tile, msg.0.rotation
             );
             let Ok((chunk, mut data)) = query.single_mut() else {
                 warn!("GridMap non found!");
                 continue;
             };
 
-            place_tiles(chunk, &mut data, msg.0, orientation_from_u8(msg.1));
+            place_tiles(
+                chunk,
+                &mut data,
+                msg.0.tile,
+                orientation_from_u8(msg.0.rotation),
+            );
+        }
+    }
+}
+
+fn receive_all_buildings(
+    mut receivers: Query<&mut MessageReceiver<AllBuildings>>,
+    mut map: Query<(&TilemapChunk, &mut TilemapChunkTileData), With<GridMap>>,
+) {
+    let Ok((chunk, mut data)) = map.single_mut() else {
+        return;
+    };
+    for mut rx in &mut receivers {
+        for AllBuildings(list) in rx.receive() {
+            for building in list {
+                print!("HELLIO");
+                place_tiles(
+                    chunk,
+                    &mut data,
+                    building.tile,
+                    orientation_from_u8(building.rotation),
+                );
+                // write the tile into `data` from b.tile, b.kind, b.rotation
+            }
         }
     }
 }

@@ -37,17 +37,20 @@ impl Plugin for ExampleServerPlugin {
 ///
 /// You can add more components to customize how this connection, for example by adding a
 /// [`ReplicationSender`] (which means that the server will replicate the state of the world to this client)
-fn handle_new_client(trigger: On<Add<Connected>>, mut commands: Commands) {
-    commands.entity(trigger.entity).insert(ReplicationSender);
-
-    // spawn an entity for this client, that we will replicate to all clients
-    commands.spawn((
-        PlayerPosition::default(),
-        // this entity has a link to the client
-        Replicate::to_clients(NetworkTarget::All),
-    ));
+fn handle_new_client(
+    trigger: On<Add<Connected>>,
+    buildings: Res<ServerBuildings>,
+    mut senders: Query<&mut MessageSender<AllBuildings>>,
+) {
+    if let Ok(mut tx) = senders.get_mut(trigger.entity) {
+        tx.send::<Channel1>(AllBuildings(buildings.0.clone()));
+    } else {
+        error!("client has no MessageSender<AllBuildings>");
+    }
 }
 
+#[derive(Resource, Default)]
+pub struct ServerBuildings(Vec<BuildingData>);
 fn startup(mut commands: Commands) -> Result {
     // start a server entity
     let server = commands
@@ -82,7 +85,8 @@ fn spawn_tile(
     mouse: Res<ButtonInput<MouseButton>>,
     window: Single<&Window, With<PrimaryWindow>>,
     camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
-    mut sender: Option<Single<&mut MessageSender<BuildingMassage>>>,
+    mut sender: Option<Single<&mut MessageSender<BuildingPlaced>>>,
+    mut buildings: ResMut<ServerBuildings>,
     // ...
 ) {
     if !mouse.just_pressed(MouseButton::Left) {
@@ -105,21 +109,24 @@ fn spawn_tile(
     };
 
     place_tiles(chunk, &mut data, world_pos, *ROTATION.lock().unwrap());
-
+    let building = BuildingData {
+        id: 1,
+        tile: world_pos,
+        kind: 0,
+        rotation: orientation_to_u8(*ROTATION.lock().unwrap()),
+    };
+    buildings.0.push(building.clone());
     if let Some(sender) = sender.as_mut() {
-        sender.send::<Channel1>(BuildingMassage(
-            world_pos,
-            orientation_to_u8(*ROTATION.lock().unwrap()),
-        ));
+        sender.send::<Channel1>(BuildingPlaced(building));
     }
 }
+
 #[derive(Component)]
 struct GridMap;
 fn setup_tilemap(mut commands: Commands, assets: Res<AssetServer>) {
     let chunk_size = UVec2::splat(100);
     let tile_display_size = UVec2::splat(100);
 
-    // Tutte le tile partono vuote (None = nessuna tile)
     let tile_data: Vec<Option<TileData>> = vec![None; chunk_size.element_product() as usize];
 
     commands.spawn((
@@ -146,24 +153,30 @@ fn rotatie_tile(keyboard: Res<ButtonInput<KeyCode>>) {
         *orientation = next_orientation(*orientation);
     }
 }
-
 fn receive_position(
     mut query: Query<(&TilemapChunk, &mut TilemapChunkTileData), With<GridMap>>,
     assets: Res<AssetServer>,
-    mut receivers: Query<(Entity, &mut MessageReceiver<BuildingMassage>)>,
+    mut receivers: Query<(Entity, &mut MessageReceiver<BuildingPlaced>)>,
+    mut buildings: ResMut<ServerBuildings>,
 ) {
     for (client, mut receiver) in &mut receivers {
         for msg in receiver.receive() {
             info!(
                 "Server: ricevuto {:?} with rotation {:?} client {client:?}",
-                msg.0, msg.1
+                msg.0.tile, msg.0.rotation
             );
             let Ok((chunk, mut data)) = query.single_mut() else {
                 warn!("GridMap non found!");
                 continue;
             };
 
-            place_tiles(chunk, &mut data, msg.0, orientation_from_u8(msg.1));
+            buildings.0.push(msg.0.clone());
+            place_tiles(
+                chunk,
+                &mut data,
+                msg.0.tile,
+                orientation_from_u8(msg.0.rotation),
+            );
         }
     }
 }

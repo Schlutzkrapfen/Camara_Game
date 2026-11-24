@@ -9,6 +9,7 @@ dependencies = [
  "bevy",
  "clap",
  "lightyear",
+ "rand 0.9.5",
  "serde",
 ]
 

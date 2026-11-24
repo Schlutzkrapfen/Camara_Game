@@ -38,7 +38,7 @@ impl Plugin for SharedPlugin {
         app.register_message::<Message1>()
             .add_direction(NetworkDirection::ServerToClient);
 
-        app.register_message::<BuildingMassage>()
+        app.register_message::<BuildingPlaced>()
             .add_direction(NetworkDirection::Bidirectional);
 
         // inputs
@@ -46,7 +46,6 @@ impl Plugin for SharedPlugin {
 
         // components
         app.component::<PlayerId>().replicate();
-        app.component::<PlayerPosition>();
         //.replicate()
         //.predict()
         //.add_linear_interpolation();
@@ -64,15 +63,7 @@ impl Plugin for SharedPlugin {
 
 /// System that draws the boxes of the player positions.
 /// The components should be replicated from the server to the client
-pub(crate) fn draw_boxes(mut gizmos: Gizmos, players: Query<&PlayerPosition>) {
-    for position in &players {
-        gizmos.rect_2d(
-            Isometry2d::from_translation(position.0),
-            Vec2::ONE * 50.0,
-            Color::WHITE,
-        );
-    }
-}
+
 pub fn build(
     chunk: &TilemapChunk,
     data: &mut TilemapChunkTileData,
