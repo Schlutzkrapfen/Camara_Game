@@ -41,6 +41,8 @@ impl Plugin for SharedPlugin {
         app.register_message::<BuildingPlaced>()
             .add_direction(NetworkDirection::Bidirectional);
 
+        app.register_message::<AllBuildings>()
+            .add_direction(NetworkDirection::ServerToClient);
         // inputs
         //app.add_plugins(input::native::InputPlugin::<Inputs>::default());
 

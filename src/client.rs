@@ -23,10 +23,11 @@ const CLIENT_ADDR: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST),
 
 impl Plugin for ExampleClientPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (startup, setup_tilemap, receive_all_buildings));
+        app.add_systems(Startup, (startup, setup_tilemap));
         app.add_systems(
             Update,
             (
+                receive_all_buildings,
                 spawn_tile,
                 receive_position,
                 check_connection,
@@ -189,12 +190,12 @@ fn receive_all_buildings(
     mut map: Query<(&TilemapChunk, &mut TilemapChunkTileData), With<GridMap>>,
 ) {
     let Ok((chunk, mut data)) = map.single_mut() else {
+        error!("No Tilemap Found");
         return;
     };
     for mut rx in &mut receivers {
         for AllBuildings(list) in rx.receive() {
             for building in list {
-                print!("HELLIO");
                 place_tiles(
                     chunk,
                     &mut data,
