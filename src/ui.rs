@@ -24,24 +24,36 @@ fn setup(mut commands: Commands, assets: Res<AssetServer>) {
         Node {
             width: percent(100),
             height: percent(100),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
+            align_items: AlignItems::End,
+            justify_content: JustifyContent::End,
             ..default()
         },
-        children![(
-            button(&assets),
-            // React to the button being clicked. `Button` fires an `Activate` event on a
-            // completed click, so we attach an observer for it right here on the button entity.
-            //
-            // Try it: this is where you'd run your own logic (start a game, open a menu, etc.).
-            observe(|_activate: On<Activate>| {
-                info!("Button clicked!");
-            }),
-        )],
+        children![
+            (
+                button(&assets, "1"),
+                // React to the button being clicked. `Button` fires an `Activate` event on a
+                // completed click, so we attach an observer for it right here on the button entity.
+                //
+                // Try it: this is where you'd run your own logic (start a game, open a menu, etc.).
+                observe(|_activate: On<Activate>| {
+                    info!("Button clicked!");
+                }),
+            ),
+            (
+                button(&assets, "2"),
+                // React to the button being clicked. `Button` fires an `Activate` event on a
+                // completed click, so we attach an observer for it right here on the button entity.
+                //
+                // Try it: this is where you'd run your own logic (start a game, open a menu, etc.).
+                observe(|_activate: On<Activate>| {
+                    info!("Button clicked!");
+                }),
+            )
+        ],
     ));
 }
 
-fn button(asset_server: &AssetServer) -> impl Bundle {
+fn button(asset_server: &AssetServer, text: &str) -> impl Bundle {
     (
         // The headless button widget. It handles pointer/keyboard input and pressed-state
         // tracking for us; we only provide the look below.
@@ -62,7 +74,7 @@ fn button(asset_server: &AssetServer) -> impl Bundle {
         BorderColor::all(Color::BLACK),
         BackgroundColor(NORMAL_BUTTON),
         children![(
-            Text::new("Button"),
+            Text::new(text),
             TextFont {
                 font: asset_server.load("fonts/Veyrwood.ttf").into(),
                 font_size: FontSize::Px(33.0),
@@ -92,26 +104,19 @@ fn update_button_appearance(
     mut text_query: Query<&mut Text>,
 ) {
     for (hovered, pressed, mut color, mut border_color, children) in &mut buttons {
-        let Ok(mut text) = text_query.get_mut(children[0]) else {
-            continue;
-        };
-
         match (hovered.get(), pressed) {
             // Pressed (and, since you can only press what you're hovering, also hovered).
             (_, true) => {
-                **text = "Press".to_string();
                 *color = PRESSED_BUTTON.into();
                 border_color.set_all(RED);
             }
             // Hovered but not pressed.
             (true, false) => {
-                **text = "Hover".to_string();
                 *color = HOVERED_BUTTON.into();
                 border_color.set_all(WHITE);
             }
             // Neither hovered nor pressed.
             (false, false) => {
-                **text = "Button".to_string();
                 *color = NORMAL_BUTTON.into();
                 border_color.set_all(BLACK);
             }
