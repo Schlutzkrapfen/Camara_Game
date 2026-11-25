@@ -11,9 +11,11 @@ mod enums;
 mod protocol;
 mod server;
 mod shared;
+mod ui;
 
 use crate::protocol::Inputs;
 use crate::shared::{FIXED_TIMESTEP_HZ, SharedPlugin};
+use crate::ui::UiPlugin;
 use bevy::prelude::*;
 use bevy::{post_process::bloom::Bloom, prelude::*};
 use clap::{ArgAction, Parser, Subcommand, ValueEnum};
@@ -67,6 +69,8 @@ fn main() {
         }
     }
     app.add_plugins(SharedPlugin);
+    app.add_plugins(UiPlugin);
+
     app.add_systems(Startup, setup_camera);
     app.run();
 }
