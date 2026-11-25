@@ -48,6 +48,7 @@ fn main() {
     let mut app = App::new();
 
     app.add_plugins(DefaultPlugins);
+    app.init_state::<enums::GameState>();
 
     // ProtocolPlugin must be added after the Client/Server plugins.
     let tick = Duration::from_secs_f64(1.0 / FIXED_TIMESTEP_HZ);

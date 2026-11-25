@@ -30,6 +30,16 @@ fn setup(mut commands: Commands, assets: Res<AssetServer>) {
         },
         children![
             (
+                button(&assets, "Menu"),
+                // React to the button being clicked. `Button` fires an `Activate` event on a
+                // completed click, so we attach an observer for it right here on the button entity.
+                //
+                // Try it: this is where you'd run your own logic (start a game, open a menu, etc.).
+                observe(|_activate: On<Activate>| {
+                    info!("Button clicked!");
+                }),
+            ),
+            (
                 button(&assets, "1"),
                 // React to the button being clicked. `Button` fires an `Activate` event on a
                 // completed click, so we attach an observer for it right here on the button entity.

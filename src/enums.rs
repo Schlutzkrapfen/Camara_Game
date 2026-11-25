@@ -1,4 +1,4 @@
-use bevy::sprite_render::TileOrientation;
+use bevy::{sprite_render::TileOrientation, state::state::States};
 
 pub fn orientation_to_u8(o: TileOrientation) -> u8 {
     match o {
@@ -12,7 +12,13 @@ pub fn orientation_to_u8(o: TileOrientation) -> u8 {
         TileOrientation::MirrorHRotate270 => 7,
     }
 }
-
+#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
+pub enum GameState {
+    #[default]
+    Menu,
+    Game,
+    Pause,
+}
 pub fn orientation_from_u8(n: u8) -> TileOrientation {
     match n {
         1 => TileOrientation::Rotate90,

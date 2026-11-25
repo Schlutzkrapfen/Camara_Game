@@ -28,10 +28,10 @@ impl Plugin for ExampleClientPlugin {
             Update,
             (
                 receive_all_buildings,
-                spawn_tile,
+                spawn_tile.run_if(in_state(GameState::Game)),
                 receive_position,
                 check_connection,
-                rotatie_tile_client,
+                rotatie_tile_client.run_if(in_state(GameState::Game)),
             ),
         );
     }
