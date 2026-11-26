@@ -6,6 +6,7 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
+mod buildbuilds;
 mod client;
 mod enums;
 mod menu;
@@ -14,9 +15,10 @@ mod server;
 mod shared;
 mod ui;
 
+use crate::buildbuilds::FIXED_TIMESTEP_HZ;
 use crate::menu::MenuPlugin;
 use crate::protocol::Inputs;
-use crate::shared::{FIXED_TIMESTEP_HZ, SharedPlugin};
+use crate::shared::SharedPlugin;
 use crate::ui::UiPlugin;
 use bevy::prelude::*;
 use bevy::{post_process::bloom::Bloom, prelude::*};
