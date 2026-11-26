@@ -1,4 +1,4 @@
-use bevy::{sprite_render::TileOrientation, state::state::States};
+use bevy::{ecs::component::Component, sprite_render::TileOrientation, state::state::States};
 
 pub fn orientation_to_u8(o: TileOrientation) -> u8 {
     match o {
@@ -43,4 +43,25 @@ pub fn next_orientation(orientation: TileOrientation) -> TileOrientation {
         TileOrientation::MirrorHRotate180 => TileOrientation::MirrorHRotate270,
         TileOrientation::MirrorHRotate270 => TileOrientation::MirrorH,
     }
+}
+#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
+pub enum MenuState {
+    Main,
+    Settings,
+    SettingsDisplay,
+    SettingsSound,
+    #[default]
+    Disabled,
+}
+
+// All actions that can be triggered from a button click
+#[derive(Component)]
+pub enum MenuButtonAction {
+    Play,
+    Settings,
+    SettingsDisplay,
+    SettingsSound,
+    BackToMainMenu,
+    BackToSettings,
+    Quit,
 }

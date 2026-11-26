@@ -5,22 +5,30 @@ use bevy::{
     ui::Pressed,
     ui_widgets::{Activate, Button, observe},
 };
+
+use crate::enums::GameState;
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup);
-        app.add_systems(Update, update_button_appearance);
+        app.add_systems(OnEnter(GameState::Game), setup);
+        app.add_systems(
+            Update,
+            update_button_appearance.run_if(in_state(GameState::Game)),
+        );
     }
 }
 
-const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
-const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
-const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
+pub const TEXT_COLOR: Color = Color::srgb(0.9, 0.9, 0.9);
+pub const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
+pub const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
+pub const HOVERED_PRESSED_BUTTON: Color = Color::srgb(0.25, 0.65, 0.25);
+pub const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
 
 fn setup(mut commands: Commands, assets: Res<AssetServer>) {
     // A full-screen container that centers the button.
     commands.spawn((
+        DespawnOnExit(GameState::Game),
         Node {
             width: percent(100),
             height: percent(100),
@@ -111,7 +119,6 @@ fn update_button_appearance(
         ),
         With<Button>,
     >,
-    mut text_query: Query<&mut Text>,
 ) {
     for (hovered, pressed, mut color, mut border_color, children) in &mut buttons {
         match (hovered.get(), pressed) {

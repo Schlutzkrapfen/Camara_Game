@@ -8,11 +8,13 @@
 #![allow(dead_code)]
 mod client;
 mod enums;
+mod menu;
 mod protocol;
 mod server;
 mod shared;
 mod ui;
 
+use crate::menu::MenuPlugin;
 use crate::protocol::Inputs;
 use crate::shared::{FIXED_TIMESTEP_HZ, SharedPlugin};
 use crate::ui::UiPlugin;
@@ -32,7 +34,21 @@ pub struct Cli {
     #[command(subcommand)]
     pub mode: Mode,
 }
+// Tag component used to tag entities added on the main menu screen
+#[derive(Component)]
+struct OnMainMenuScreen;
 
+// Tag component used to tag entities added on the settings menu screen
+#[derive(Component)]
+struct OnSettingsMenuScreen;
+
+// Tag component used to tag entities added on the display settings menu screen
+#[derive(Component)]
+struct OnDisplaySettingsMenuScreen;
+
+// Tag component used to tag entities added on the sound settings menu screen
+#[derive(Component)]
+struct OnSoundSettingsMenuScreen;
 #[derive(Resource, Default)]
 pub struct NextBuildingId(pub u32);
 #[derive(Subcommand, Debug)]
@@ -71,6 +87,7 @@ fn main() {
     }
     app.add_plugins(SharedPlugin);
     app.add_plugins(UiPlugin);
+    app.add_plugins(MenuPlugin);
 
     app.add_systems(Startup, setup_camera);
     app.run();
