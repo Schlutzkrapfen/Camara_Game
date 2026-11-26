@@ -60,7 +60,6 @@ pub enum Mode {
 const CAMERA_DECAY_RATE: f32 = 2.;
 
 fn main() {
-    let cli = Cli::parse();
     let mut app = App::new();
 
     app.add_plugins(DefaultPlugins);
@@ -70,22 +69,16 @@ fn main() {
     // ProtocolPlugin must be added after the Client/Server plugins.
     let tick = Duration::from_secs_f64(1.0 / FIXED_TIMESTEP_HZ);
 
-    match cli.mode {
-        Mode::Client => {
-            app.add_plugins(ClientPlugins {
-                tick_duration: tick,
-            });
-            app.add_plugins(client::ExampleClientPlugin);
-        }
-        Mode::Server => {
-            app.add_plugins(ServerPlugins {
-                tick_duration: tick,
-            });
-            app.add_plugins(server::ExampleServerPlugin);
-            app.init_resource::<server::ServerBuildings>();
-            app.init_resource::<NextBuildingId>();
-        }
-    }
+    app.add_plugins(ClientPlugins {
+        tick_duration: tick,
+    });
+    app.add_plugins(client::ExampleClientPlugin);
+    app.add_plugins(ServerPlugins {
+        tick_duration: tick,
+    });
+    app.add_plugins(server::ExampleServerPlugin);
+    app.init_resource::<server::ServerBuildings>();
+    app.init_resource::<NextBuildingId>();
     app.add_plugins(SharedPlugin);
     app.add_plugins(UiPlugin);
     app.add_plugins(MenuPlugin);

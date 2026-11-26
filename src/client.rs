@@ -23,16 +23,17 @@ const CLIENT_ADDR: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST),
 
 impl Plugin for ExampleClientPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (startup, setup_tilemap));
+        app.add_systems(OnEnter(GameState::Client), (startup, setup_tilemap));
         app.add_systems(
             Update,
             (
                 receive_all_buildings,
-                spawn_tile.run_if(in_state(GameState::Game)),
+                spawn_tile,
                 receive_position,
                 check_connection,
-                rotatie_tile_client.run_if(in_state(GameState::Game)),
-            ),
+                rotatie_tile_client,
+            )
+                .run_if(in_state(GameState::Client)),
         );
     }
 }
@@ -69,15 +70,7 @@ fn startup(mut commands: Commands) -> Result {
         .id();
 
     commands.trigger(Connect { entity: client });
-    commands.spawn((
-        Text::new(concat!("Client")),
-        Node {
-            position_type: PositionType::Absolute,
-            bottom: px(12),
-            left: px(12),
-            ..default()
-        },
-    ));
+
     Ok(())
 }
 

@@ -16,7 +16,8 @@ pub fn orientation_to_u8(o: TileOrientation) -> u8 {
 pub enum GameState {
     #[default]
     Menu,
-    Game,
+    Client,
+    Server,
     Pause,
 }
 pub fn orientation_from_u8(n: u8) -> TileOrientation {
@@ -58,6 +59,7 @@ pub enum MenuState {
 #[derive(Component)]
 pub enum MenuButtonAction {
     Play,
+    Connect,
     Settings,
     SettingsDisplay,
     SettingsSound,

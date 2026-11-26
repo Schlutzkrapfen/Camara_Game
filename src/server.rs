@@ -22,9 +22,12 @@ static ROTATION: Mutex<TileOrientation> = Mutex::new(TileOrientation::Default);
 
 impl Plugin for ExampleServerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (startup, setup_tilemap));
+        app.add_systems(OnEnter(GameState::Server), (startup, setup_tilemap));
         app.add_observer(handle_new_client);
-        app.add_systems(Update, (receive_position, spawn_tile, rotatie_tile));
+        app.add_systems(
+            Update,
+            (receive_position, spawn_tile, rotatie_tile).run_if(in_state(GameState::Server)),
+        );
     }
 }
 
@@ -40,8 +43,12 @@ impl Plugin for ExampleServerPlugin {
 fn handle_new_client(
     trigger: On<Add<Connected>>,
     buildings: Res<ServerBuildings>,
+    state: Res<State<GameState>>,
     mut senders: Query<&mut MessageSender<AllBuildings>>,
 ) {
+    if *state.get() != GameState::Server {
+        return;
+    }
     if let Ok(mut tx) = senders.get_mut(trigger.entity) {
         tx.send::<Channel1>(AllBuildings(buildings.0.clone()));
     } else {
@@ -68,15 +75,7 @@ fn startup(mut commands: Commands) -> Result {
         .id();
     // you can use triggers to start/stop the server
     commands.trigger(Start { entity: server });
-    commands.spawn((
-        Text::new(concat!("Server")),
-        Node {
-            position_type: PositionType::Absolute,
-            bottom: px(12),
-            left: px(12),
-            ..default()
-        },
-    ));
+
     Ok(())
 }
 /// Places a tile at the cursor position on left click and notifies the network.

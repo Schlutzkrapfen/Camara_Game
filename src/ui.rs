@@ -1,5 +1,6 @@
 use bevy::{
     color::palettes::basic::*,
+    ecs::schedule::SystemCondition,
     picking::hover::Hovered,
     prelude::*,
     ui::Pressed,
@@ -11,10 +12,12 @@ pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Game), setup);
+        app.add_systems(OnEnter(GameState::Server), server_setup);
+        app.add_systems(OnEnter(GameState::Client), client_setup);
         app.add_systems(
             Update,
-            update_button_appearance.run_if(in_state(GameState::Game)),
+            update_button_appearance
+                .run_if(in_state(GameState::Server).xor(in_state(GameState::Client))),
         );
     }
 }
@@ -24,11 +27,34 @@ pub const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
 pub const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
 pub const HOVERED_PRESSED_BUTTON: Color = Color::srgb(0.25, 0.65, 0.25);
 pub const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
-
-fn setup(mut commands: Commands, assets: Res<AssetServer>) {
+fn server_setup(mut commands: Commands, assets: Res<AssetServer>) {
+    default_setup(&mut commands, &assets);
+    commands.spawn((
+        Text::new(concat!("Server")),
+        Node {
+            position_type: PositionType::Absolute,
+            bottom: px(12),
+            left: px(12),
+            ..default()
+        },
+    ));
+}
+fn client_setup(mut commands: Commands, assets: Res<AssetServer>) {
+    default_setup(&mut commands, &assets);
+    commands.spawn((
+        Text::new(concat!("Client")),
+        Node {
+            position_type: PositionType::Absolute,
+            bottom: px(12),
+            left: px(12),
+            ..default()
+        },
+    ));
+}
+fn default_setup(commands: &mut Commands, assets: &AssetServer) {
     // A full-screen container that centers the button.
     commands.spawn((
-        DespawnOnExit(GameState::Game),
+        DespawnOnExit(GameState::Server),
         Node {
             width: percent(100),
             height: percent(100),

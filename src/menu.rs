@@ -36,7 +36,7 @@ impl Plugin for MenuPlugin {
         // Current screen in the menu is handled by an independent state from `GameState`
         app.add_systems(OnEnter(GameState::Menu), menu_setup)
             // Systems to handle the main menu screen
-            .add_systems(OnEnter(MenuState::Main), main_menu_setup)
+            .add_systems(OnEnter(GameState::Menu), main_menu_setup)
             // Systems to handle the settings menu screen
             .add_systems(OnEnter(MenuState::Settings), settings_menu_setup)
             // Systems to handle the display settings screen
@@ -234,6 +234,21 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     ActivateOnPress,
                     button_node.clone(),
                     BackgroundColor(NORMAL_BUTTON),
+                    MenuButtonAction::Connect,
+                    children![
+                        //(ImageNode::new(right_icon), button_icon_node.clone()),
+                        (
+                            Text::new("Multiplayer"),
+                            button_text_font.clone(),
+                            TextColor(TEXT_COLOR),
+                        ),
+                    ]
+                ),
+                (
+                    Button,
+                    ActivateOnPress,
+                    button_node.clone(),
+                    BackgroundColor(NORMAL_BUTTON),
                     MenuButtonAction::Settings,
                     children![
                         //(ImageNode::new(wrench_icon), button_icon_node.clone()),
@@ -404,7 +419,11 @@ fn on_button_activate_update_states(
                 app_exit_writer.write(AppExit::Success);
             }
             MenuButtonAction::Play => {
-                game_state.set(GameState::Game);
+                game_state.set(GameState::Server);
+                menu_state.set(MenuState::Disabled);
+            }
+            MenuButtonAction::Connect => {
+                game_state.set(GameState::Client);
                 menu_state.set(MenuState::Disabled);
             }
             MenuButtonAction::Settings => menu_state.set(MenuState::Settings),
