@@ -19,7 +19,6 @@ use std::sync::Mutex;
 
 pub struct ExampleClientPlugin;
 
-static ROTATION: Mutex<TileOrientation> = Mutex::new(TileOrientation::Default);
 const CLIENT_ADDR: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 4000);
 
 impl Plugin for ExampleClientPlugin {

@@ -19,8 +19,6 @@ use lightyear::prelude::*;
 
 pub struct ExampleServerPlugin;
 
-static ROTATION: Mutex<TileOrientation> = Mutex::new(TileOrientation::Default);
-
 impl Plugin for ExampleServerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::Server), (startup, setup_tilemap));

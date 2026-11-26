@@ -5,6 +5,7 @@ use std::collections::HashMap;
 #[derive(Asset, TypePath, Deserialize, Debug, Clone)]
 #[serde(default)]
 pub struct BuildingResource {
+    pub id: u32,
     pub size: IVec2,
     pub position_tilemap: IVec2,
     pub tilemap_id: i32,

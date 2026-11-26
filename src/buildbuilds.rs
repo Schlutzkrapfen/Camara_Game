@@ -1,8 +1,12 @@
+use std::sync::Mutex;
+
 use bevy::prelude::*;
 pub struct BuildingBuildsPlugin;
 
 pub const FIXED_TIMESTEP_HZ: f64 = 64.0;
 pub const TILEDISPLAYSIZE: UVec2 = UVec2::splat(100);
+
+pub static ROTATION: Mutex<TileOrientation> = Mutex::new(TileOrientation::Default);
 
 use bevy::sprite_render::{
     AlphaMode2d, TileData, TileOrientation, TilemapChunk, TilemapChunkTileData,
