@@ -1,18 +1,34 @@
 use crate::ui::{HOVERED_PRESSED_BUTTON, NORMAL_BUTTON, TEXT_COLOR};
+use crate::{OnMainMenuScreen, OnSoundSettingsMenuScreen};
 use clap::builder::styling::Color;
 
 use crate::{
     enums::{GameState, MenuButtonAction, MenuState},
     ui::{HOVERED_BUTTON, PRESSED_BUTTON},
 };
-use bevy::{
-    color::palettes::basic::*,
-    picking::hover::Hovered,
-    prelude::*,
-    ui::{Checked, Pressed},
-    ui_widgets::{Activate, Button, RadioButton, observe},
-};
+
 pub struct MenuPlugin;
+use bevy::{
+    app::AppExit,
+    color::palettes::css::CRIMSON,
+    ecs::component::Mutable,
+    ecs::spawn::{SpawnIter, SpawnWith},
+    picking::prelude::*,
+    prelude::*,
+    ui::Checked,
+    ui_widgets::{Activate, ActivateOnPress, Button, RadioButton, RadioGroup, ValueChange},
+};
+
+#[derive(Resource, Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Volume(pub u32);
+impl Default for Volume {
+    fn default() -> Self {
+        Volume(5)
+    }
+}
+
+#[derive(Component)]
+struct Setting<T>(T);
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         // At start, the menu is not enabled. This will be changed in `menu_setup` when
@@ -40,10 +56,9 @@ impl Plugin for MenuPlugin {
             .add_observer(on_button_out_style)
             .add_observer(on_radio_button_press_style)
             .add_observer(on_radio_button_release_style);
+        app.init_resource::<Volume>();
     }
 }
-#[derive(Resource, Component, Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Volume(pub u32);
 
 /// Observer that changes the background color to hovered over buttons / radio buttons to the correct color.
 fn on_button_over_style(
@@ -160,9 +175,9 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..default()
     };
 
-    let right_icon = asset_server.load("textures/Game Icons/right.png");
-    let wrench_icon = asset_server.load("textures/Game Icons/wrench.png");
-    let exit_icon = asset_server.load("textures/Game Icons/exitRight.png");
+    //let right_icon = asset_server.load("textures/Game Icons/right.png");
+    //let wrench_icon = asset_server.load("textures/Game Icons/wrench.png");
+    //let exit_icon = asset_server.load("textures/Game Icons/exitRight.png");
 
     commands.spawn((
         DespawnOnExit(MenuState::Main),
@@ -206,7 +221,7 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     BackgroundColor(NORMAL_BUTTON),
                     MenuButtonAction::Play,
                     children![
-                        (ImageNode::new(right_icon), button_icon_node.clone()),
+                        //(ImageNode::new(right_icon), button_icon_node.clone()),
                         (
                             Text::new("New Game"),
                             button_text_font.clone(),
@@ -221,7 +236,7 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     BackgroundColor(NORMAL_BUTTON),
                     MenuButtonAction::Settings,
                     children![
-                        (ImageNode::new(wrench_icon), button_icon_node.clone()),
+                        //(ImageNode::new(wrench_icon), button_icon_node.clone()),
                         (
                             Text::new("Settings"),
                             button_text_font.clone(),
@@ -236,7 +251,7 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     BackgroundColor(NORMAL_BUTTON),
                     MenuButtonAction::Quit,
                     children![
-                        (ImageNode::new(exit_icon), button_icon_node),
+                        //(ImageNode::new(exit_icon), button_icon_node),
                         (Text::new("Quit"), button_text_font, TextColor(TEXT_COLOR),),
                     ]
                 ),
@@ -274,7 +289,7 @@ fn settings_menu_setup(mut commands: Commands) {
         },
     ));
 }
-fn display_settings_menu_setup(mut commands: Commands) {
+fn display_settings_menu_setup() {
     fn button_node() -> Node {
         Node {
             width: px(200),
